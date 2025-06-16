@@ -11,12 +11,20 @@ def get_current_user():
     """
     return getattr(_thread_locals, 'user', None)
 
+def get_current_tenant():
+    """
+    Retorna o tenant atual da requisição armazenado no thread local.
+    """
+    return getattr(_thread_locals, 'tenant', None)
+
 class CurrentUserMiddleware(MiddlewareMixin):
     """
     Middleware que armazena o usuário atual no thread local para acesso em qualquer parte do código.
     """
     def process_request(self, request):
         _thread_locals.user = request.user if hasattr(request, 'user') and request.user.is_authenticated else None
+        # Also store the tenant for audit purposes
+        _thread_locals.tenant = getattr(request, 'tenant', None)
 
 class RowLevelSecurityMiddleware(MiddlewareMixin):
     """

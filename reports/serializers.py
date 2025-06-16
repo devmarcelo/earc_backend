@@ -5,32 +5,34 @@ from .models import MetaResultado, ProjecaoCaixa
 class MetaResultadoSerializer(serializers.ModelSerializer):
     created_by = serializers.StringRelatedField(read_only=True)
     updated_by = serializers.StringRelatedField(read_only=True)
+    tenant_id = serializers.IntegerField(source='tenant.id', read_only=True)
     
     class Meta:
         model = MetaResultado
         fields = [
             "id", "mes_ano", "meta_receita", "receita_real", 
             "meta_lucro", "lucro_real", "created_on", "updated_at",
-            "created_by", "updated_by"
+            "created_by", "updated_by", "tenant_id"
         ]
         # receita_real and lucro_real might be read-only if calculated by backend services
         read_only_fields = ["id", "receita_real", "lucro_real", "created_on", "updated_at", 
-                           "created_by", "updated_by"]
+                           "created_by", "updated_by", "tenant_id"]
 
 class ProjecaoCaixaSerializer(serializers.ModelSerializer):
     saldo_projetado_dia = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     created_by = serializers.StringRelatedField(read_only=True)
     updated_by = serializers.StringRelatedField(read_only=True)
+    tenant_id = serializers.IntegerField(source='tenant.id', read_only=True)
 
     class Meta:
         model = ProjecaoCaixa
         fields = [
             "id", "data", "entradas_previstas", "saidas_previstas", 
             "saldo_projetado_dia", "created_on", "updated_at",
-            "created_by", "updated_by"
+            "created_by", "updated_by", "tenant_id"
         ]
         read_only_fields = ["id", "saldo_projetado_dia", "created_on", "updated_at",
-                           "created_by", "updated_by"]
+                           "created_by", "updated_by", "tenant_id"]
 
 # --- Serializers for Report Generation (Read-only) ---
 

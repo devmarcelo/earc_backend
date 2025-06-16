@@ -30,6 +30,8 @@ class User(AbstractUser):
 
 # Base model for tenant-specific tables (optional, but good for common fields)
 class TenantAwareModel(models.Model):
+    # Explicit tenant field for audit purposes (even though django-tenants handles schema isolation)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True, editable=False)
     # tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE) # Handled implicitly by django-tenants for models in TENANT_APPS
     created_on = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -8,21 +8,23 @@ from core.models import Categoria, User
 class ClienteSerializer(serializers.ModelSerializer):
     created_by = serializers.StringRelatedField(read_only=True)
     updated_by = serializers.StringRelatedField(read_only=True)
+    tenant_id = serializers.IntegerField(source='tenant.id', read_only=True)
     
     class Meta:
         model = Cliente
-        fields = ["id", "nome", "contato", "endereco", "created_on", "updated_at", "created_by", "updated_by"]
-        read_only_fields = ["id", "created_on", "updated_at", "created_by", "updated_by"]
+        fields = ["id", "nome", "contato", "endereco", "created_on", "updated_at", "created_by", "updated_by", "tenant_id"]
+        read_only_fields = ["id", "created_on", "updated_at", "created_by", "updated_by", "tenant_id"]
 
 # --- Fornecedor Serializers ---
 class FornecedorSerializer(serializers.ModelSerializer):
     created_by = serializers.StringRelatedField(read_only=True)
     updated_by = serializers.StringRelatedField(read_only=True)
+    tenant_id = serializers.IntegerField(source='tenant.id', read_only=True)
     
     class Meta:
         model = Fornecedor
-        fields = ["id", "nome", "contato", "cnpj", "created_on", "updated_at", "created_by", "updated_by"]
-        read_only_fields = ["id", "created_on", "updated_at", "created_by", "updated_by"]
+        fields = ["id", "nome", "contato", "cnpj", "created_on", "updated_at", "created_by", "updated_by", "tenant_id"]
+        read_only_fields = ["id", "created_on", "updated_at", "created_by", "updated_by", "tenant_id"]
 
 # --- Receita Serializers ---
 class ReceitaSerializer(serializers.ModelSerializer):
@@ -31,6 +33,7 @@ class ReceitaSerializer(serializers.ModelSerializer):
     categoria = CategoriaSerializer(read_only=True)
     created_by = serializers.StringRelatedField(read_only=True)
     updated_by = serializers.StringRelatedField(read_only=True)
+    tenant_id = serializers.IntegerField(source='tenant.id', read_only=True)
     
     # Use PrimaryKeyRelatedField for write operations
     cliente_id = serializers.PrimaryKeyRelatedField(
@@ -46,9 +49,9 @@ class ReceitaSerializer(serializers.ModelSerializer):
             "id", "data", "descricao", "valor", 
             "cliente", "categoria", # Read-only nested
             "cliente_id", "categoria_id", # Write-only PKs
-            "created_on", "updated_at", "created_by", "updated_by"
+            "created_on", "updated_at", "created_by", "updated_by", "tenant_id"
         ]
-        read_only_fields = ["id", "created_on", "updated_at", "created_by", "updated_by"]
+        read_only_fields = ["id", "created_on", "updated_at", "created_by", "updated_by", "tenant_id"]
 
     def validate_categoria_id(self, value):
         """Ensure the category is of type Receita."""
@@ -62,6 +65,7 @@ class DespesaSerializer(serializers.ModelSerializer):
     categoria = CategoriaSerializer(read_only=True)
     created_by = serializers.StringRelatedField(read_only=True)
     updated_by = serializers.StringRelatedField(read_only=True)
+    tenant_id = serializers.IntegerField(source='tenant.id', read_only=True)
     
     fornecedor_id = serializers.PrimaryKeyRelatedField(
         queryset=Fornecedor.objects.all(), source="fornecedor", write_only=True, required=False, allow_null=True
@@ -76,9 +80,9 @@ class DespesaSerializer(serializers.ModelSerializer):
             "id", "data", "descricao", "valor", 
             "fornecedor", "categoria", # Read-only nested
             "fornecedor_id", "categoria_id", # Write-only PKs
-            "created_on", "updated_at", "created_by", "updated_by"
+            "created_on", "updated_at", "created_by", "updated_by", "tenant_id"
         ]
-        read_only_fields = ["id", "created_on", "updated_at", "created_by", "updated_by"]
+        read_only_fields = ["id", "created_on", "updated_at", "created_by", "updated_by", "tenant_id"]
 
     def validate_categoria_id(self, value):
         """Ensure the category is of type Despesa."""
@@ -92,6 +96,7 @@ class ContaPagarReceberSerializer(serializers.ModelSerializer):
     fornecedor = FornecedorSerializer(read_only=True)
     created_by = serializers.StringRelatedField(read_only=True)
     updated_by = serializers.StringRelatedField(read_only=True)
+    tenant_id = serializers.IntegerField(source='tenant.id', read_only=True)
     
     cliente_id = serializers.PrimaryKeyRelatedField(
         queryset=Cliente.objects.all(), source="cliente", write_only=True, required=False, allow_null=True
@@ -106,10 +111,10 @@ class ContaPagarReceberSerializer(serializers.ModelSerializer):
             "id", "tipo", "descricao", "valor", "data_vencimento", "status", "data_pagamento",
             "cliente", "fornecedor", # Read-only nested
             "cliente_id", "fornecedor_id", # Write-only PKs
-            "created_on", "updated_at", "created_by", "updated_by"
+            "created_on", "updated_at", "created_by", "updated_by", "tenant_id"
         ]
         # Status might be read-only depending on how updates are handled (e.g., separate endpoint to mark as paid)
-        read_only_fields = ["id", "status", "created_on", "updated_at", "created_by", "updated_by"]
+        read_only_fields = ["id", "status", "created_on", "updated_at", "created_by", "updated_by", "tenant_id"]
 
     def validate(self, data):
         """Ensure either cliente_id or fornecedor_id is provided based on tipo."""

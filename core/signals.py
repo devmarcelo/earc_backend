@@ -3,7 +3,7 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.apps import apps
 from django.db import models
-from .middleware import get_current_user
+from .middleware import get_current_user, get_current_tenant
 
 def get_all_tenant_aware_models():
     """
@@ -22,7 +22,7 @@ def get_all_tenant_aware_models():
 @receiver(pre_save)
 def set_audit_fields(sender, instance, **kwargs):
     """
-    Signal para preencher automaticamente os campos de auditoria (created_by e updated_by)
+    Signal para preencher automaticamente os campos de auditoria (created_by, updated_by e tenant)
     em todos os modelos que herdam de TenantAwareModel.
     """
     from .models import TenantAwareModel
@@ -31,6 +31,11 @@ def set_audit_fields(sender, instance, **kwargs):
         return
     
     current_user = get_current_user()
+    current_tenant = get_current_tenant()
+
+    # Preenche o tenant_id se disponível
+    if current_tenant and hasattr(instance, 'tenant') and not instance.tenant_id:
+        instance.tenant = current_tenant
     
     if not current_user:
         return

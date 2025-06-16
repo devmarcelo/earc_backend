@@ -12,6 +12,7 @@ class ItemEstoqueSerializer(serializers.ModelSerializer):
     valor_total = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     created_by = serializers.StringRelatedField(read_only=True)
     updated_by = serializers.StringRelatedField(read_only=True)
+    tenant_id = serializers.IntegerField(source='tenant.id', read_only=True)
 
     class Meta:
         model = ItemEstoque
@@ -19,9 +20,9 @@ class ItemEstoqueSerializer(serializers.ModelSerializer):
             "id", "nome_produto", "quantidade", "custo_unitario", "valor_total",
             "categoria", # Read-only nested
             "categoria_id", # Write-only PK
-            "created_on", "updated_at", "created_by", "updated_by"
+            "created_on", "updated_at", "created_by", "updated_by", "tenant_id"
         ]
-        read_only_fields = ["id", "valor_total", "created_on", "updated_at", "created_by", "updated_by"]
+        read_only_fields = ["id", "valor_total", "created_on", "updated_at", "created_by", "updated_by", "tenant_id"]
 
     def validate_categoria_id(self, value):
         """Ensure the category is of type Estoque."""

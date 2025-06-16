@@ -66,11 +66,12 @@ class RegisterTenantSerializer(serializers.Serializer):
 class CategoriaSerializer(serializers.ModelSerializer):
     created_by = serializers.StringRelatedField(read_only=True)
     updated_by = serializers.StringRelatedField(read_only=True)
+    tenant_id = serializers.IntegerField(source='tenant.id', read_only=True)
     
     class Meta:
         model = Categoria
-        fields = ["id", "nome", "tipo", "created_on", "updated_at", "created_by", "updated_by"]
-        read_only_fields = ["id", "created_on", "updated_at", "created_by", "updated_by"]
+        fields = ["id", "nome", "tipo", "created_on", "updated_at", "created_by", "updated_by", "tenant_id"]
+        read_only_fields = ["id", "created_on", "updated_at", "created_by", "updated_by", "tenant_id"]
 
     # Add validation if needed, e.g., ensure unique name per type within tenant context
     # def validate(self, data):
