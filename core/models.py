@@ -1,7 +1,31 @@
 # core/models.py
 from django.db import models
 from django_tenants.models import TenantMixin, DomainMixin
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, BaseUserManager
+
+class UserManager(BaseUserManager):
+    use_in_migrations = True
+
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError("O campo email é obrigatório")
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("is_active", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser precisa ter is_staff=True")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser precisa ter is_superuser=True")
+
+        return self.create_user(email, password, **extra_fields)
 
 class Tenant(TenantMixin):
     name = models.CharField(max_length=100)
@@ -19,12 +43,17 @@ class Domain(DomainMixin):
 class User(AbstractUser):
     username = None
     email = models.EmailField(unique=True, verbose_name="email address")
+    apelido = models.CharField(max_length=100, null=True, blank=True)
+    imagem = models.URLField(null=True, blank=True)  # Pode armazenar URL externa (Google) ou do sistema
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="users", null=True, blank=True)
+    
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
+    objects = UserManager()
+
     def __str__(self):
-        return self.email
+        return self.apelido or self.email
 
 # --- Tenant-Specific Models (Managed within Tenant Schemas) ---
 
