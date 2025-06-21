@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     # Include API endpoints for tenant-specific apps
+    path("api/", include("setup.urls_public")),
     path("api/v1/financial/", include("financial.urls")), # Create later
     path("api/v1/inventory/", include("inventory.urls")), # Create later
     path("api/v1/hr/", include("hr.urls")),             # Create later

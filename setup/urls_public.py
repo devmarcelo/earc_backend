@@ -3,8 +3,11 @@ from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
+from core.views import RegisterTenantView
+
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("register-company/", RegisterTenantView.as_view(), name="register-company"),
     # Auth endpoints (Login, Register, Refresh, OAuth) - Reside in public schema
     path("api/v1/auth/", include("core.urls_auth")), # Create this file later
     # API Schema (Swagger/Redoc) - Publicly accessible

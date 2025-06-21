@@ -2,6 +2,8 @@
 from rest_framework import viewsets, permissions
 from django_filters.rest_framework import DjangoFilterBackend
 
+from core.serializers import RegisterTenantSerializer
+
 # Base ViewSet with tenant filtering (assuming TenantMainMiddleware sets request.tenant)
 # This should be inherited by ViewSets in tenant-specific apps.
 class TenantAwareViewSet(viewsets.ModelViewSet):
@@ -39,16 +41,16 @@ class TenantAwareViewSet(viewsets.ModelViewSet):
     #        serializer.save()
 
 # Add other core views here if needed, e.g., for tenant registration
-# from rest_framework import generics
-# from .serializers import RegisterTenantSerializer
-# from .models import Tenant, Domain
+from rest_framework import generics
+from .serializers import RegisterTenantSerializer
+from .models import Tenant, Domain
 
-# class RegisterTenantView(generics.CreateAPIView):
-#     serializer_class = RegisterTenantSerializer
-#     permission_classes = [permissions.AllowAny] # Allow anyone to register a new tenant
-
-#     def perform_create(self, serializer):
-#         # The serializer's create method handles tenant, domain, and user creation
-#         serializer.save()
+class RegisterTenantView(generics.CreateAPIView):
+    serializer_class = RegisterTenantSerializer
+    permission_classes = [permissions.AllowAny] # Allow anyone to register a new tenant
+    
+    def perform_create(self, serializer):
+        # The serializer's create method handles tenant, domain, and user creation
+        serializer.save()
 
 

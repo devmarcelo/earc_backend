@@ -1,4 +1,5 @@
 # core/serializers.py
+import os
 from rest_framework import serializers
 from .models import User, Tenant, Domain, Categoria # Import Categoria here
 from django.contrib.auth import get_user_model
@@ -28,38 +29,57 @@ class UserSerializer(serializers.ModelSerializer):
 
 class RegisterTenantSerializer(serializers.Serializer):
     company_name = serializers.CharField(max_length=100)
+    schema_name = serializers.SlugField(max_length=50)
     # Domain name will be derived or set separately, e.g., company_name.localhost
     # domain_name = serializers.CharField(max_length=253)
-    admin_email = serializers.EmailField()
-    admin_password = serializers.CharField(write_only=True, min_length=8)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, min_length=8)
+    apelido = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    imagem = serializers.URLField(required=False, allow_blank=True)
 
     def create(self, validated_data):
+        company_name = validated_data["company_name"]
+        schema_name = validated_data["schema_name"].lower().replace(" ", "")
+
+        email = validated_data["email"]
+        password = validated_data["password"]
+        apelido = validated_data.get("apelido", "")
+        imagem = validated_data.get("imagem", "")
+
+        # 1. Criação do Tenant
         tenant = Tenant.objects.create(
-            name=validated_data["company_name"],
-            schema_name=validated_data["company_name"].lower().replace(" ", "") # Simple schema name generation
+            name=company_name,
+            schema_name=schema_name
         )
-        # Create domain (adjust logic as needed, e.g., using environment variable for base domain)
+        
+        # 2. Criação do Domain dinâmico
+        base_domain = os.environ.get("DB_HOST", "localhost")
         domain = Domain.objects.create(
-            domain=f"{tenant.schema_name}.localhost", # Example for local dev
+            domain=f"{schema_name}.{base_domain}",
             tenant=tenant,
             is_primary=True
         )
 
-        # Create the admin user within the new tenant's schema
-        with schema_context(tenant.schema_name):
-            admin_user = UserModel.objects.create_user(
-                email=validated_data["admin_email"],
-                password=validated_data["admin_password"],
-                tenant=tenant, # Associate user with the tenant
-                is_staff=True, # Optional: Allow access to admin if enabled
-                is_superuser=True # Optional: Grant superuser within tenant schema
+        # 3. Migração de schema para o novo tenant
+        from django.core.management import call_command
+        call_command("migrate_schemas", schema_name=schema_name, interactive=False)
+
+        # 4. Criação do usuário admin no contexto do novo tenant
+        with schema_context(schema_name):
+            user = User.objects.create_user(
+                email=email,
+                password=password,
+                apelido=apelido,
+                imagem=imagem,
+                is_staff=True,
+                is_superuser=True,
+                tenant=tenant
             )
-            # You might want to assign specific roles/permissions here
 
         return {
             "tenant": tenant,
             "domain": domain,
-            "admin_user": admin_user
+            "user": user
         }
 
 # Serializer for Categoria (often needed across apps)
