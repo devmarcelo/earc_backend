@@ -32,24 +32,30 @@ class RegisterTenantSerializer(serializers.Serializer):
     schema_name = serializers.SlugField(max_length=50)
     # Domain name will be derived or set separately, e.g., company_name.localhost
     # domain_name = serializers.CharField(max_length=253)
+    logo = serializers.URLField(required=False, allow_blank=True)
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, min_length=8)
     apelido = serializers.CharField(max_length=100, required=False, allow_blank=True)
     imagem = serializers.URLField(required=False, allow_blank=True)
+    aceite = serializers.BooleanField(default=False)
+    data_cadastro = serializers.DateTimeField()
 
     def create(self, validated_data):
         company_name = validated_data["company_name"]
         schema_name = validated_data["schema_name"].lower().replace(" ", "")
-
+        logo = validated_data.get("logo", "")
         email = validated_data["email"]
         password = validated_data["password"]
         apelido = validated_data.get("apelido", "")
         imagem = validated_data.get("imagem", "")
+        aceite = validated_data.get("aceite", False)
+        data_cadastro = validated_data.get("data_cadastro")
 
         # 1. Criação do Tenant
         tenant = Tenant.objects.create(
             name=company_name,
-            schema_name=schema_name
+            schema_name=schema_name,
+            logo=logo
         )
         
         # 2. Criação do Domain dinâmico
@@ -73,6 +79,8 @@ class RegisterTenantSerializer(serializers.Serializer):
                 imagem=imagem,
                 is_staff=True,
                 is_superuser=True,
+                aceite=aceite,
+                data_cadastro=data_cadastro,
                 tenant=tenant
             )
 

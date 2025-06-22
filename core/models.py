@@ -29,6 +29,7 @@ class UserManager(BaseUserManager):
 
 class Tenant(TenantMixin):
     name = models.CharField(max_length=100)
+    logo = models.URLField(blank=True, null=True)
     created_on = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     theme_settings = models.JSONField(default=dict, blank=True, null=True)
@@ -46,6 +47,8 @@ class User(AbstractUser):
     apelido = models.CharField(max_length=100, null=True, blank=True)
     imagem = models.URLField(null=True, blank=True)  # Pode armazenar URL externa (Google) ou do sistema
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="users", null=True, blank=True)
+    aceite = models.BooleanField(default=False)
+    data_cadastro = models.DateTimeField(null=True, blank=True)
     
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
