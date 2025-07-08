@@ -1,102 +1,165 @@
-# financial/models.py
 from django.db import models
-from core.models import TenantAwareModel, Categoria, User # Assuming User might be linked later, though not directly in these models
+from core.models import TenantAwareModel
 
-class Cliente(TenantAwareModel):
-    nome = models.CharField(max_length=255)
-    contato = models.CharField(max_length=255, blank=True, null=True)
-    endereco = models.TextField(blank=True, null=True)
-    # tenant field is implicit
-
-    class Meta:
-        verbose_name = "Cliente"
-        verbose_name_plural = "Clientes"
-        ordering = ["nome"]
-
-    def __str__(self):
-        return self.nome
-
-class Fornecedor(TenantAwareModel):
-    nome = models.CharField(max_length=255)
-    contato = models.CharField(max_length=255, blank=True, null=True)
-    cnpj = models.CharField(max_length=18, blank=True, null=True) # Format: XX.XXX.XXX/XXXX-XX
-    # tenant field is implicit
+class Customer(TenantAwareModel):
+    name = models.CharField(max_length=150)
+    document = models.CharField(max_length=50)
+    email = models.EmailField(blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
+    is_anonymized = models.BooleanField(default=False)
 
     class Meta:
-        verbose_name = "Fornecedor"
-        verbose_name_plural = "Fornecedores"
-        ordering = ["nome"]
+        unique_together = (('tenant', 'document'),)
+        indexes = [
+            models.Index(fields=['tenant', 'is_active']),
+            models.Index(fields=['tenant', 'document']),
+        ]
+        verbose_name = 'Customer'
+        verbose_name_plural = 'Customers'
+
+    def anonymize(self):
+        self.name = ""
+        self.document = ""
+        self.email = ""
+        self.phone = ""
+        self.is_anonymized = True
+        self.save()
 
     def __str__(self):
-        return self.nome
+        return self.name
 
-class Receita(TenantAwareModel):
-    data = models.DateField()
-    descricao = models.CharField(max_length=255)
-    valor = models.DecimalField(max_digits=10, decimal_places=2)
-    cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True, related_name="receitas")
-    categoria = models.ForeignKey(Categoria, on_delete=models.PROTECT, related_name="receitas", limit_choices_to={"tipo": "Receita"})
-    # tenant field is implicit
+class Supplier(TenantAwareModel):
+    name = models.CharField(max_length=150)
+    document = models.CharField(max_length=50)
+    email = models.EmailField(blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
+    is_anonymized = models.BooleanField(default=False)
 
     class Meta:
-        verbose_name = "Receita"
-        verbose_name_plural = "Receitas"
-        ordering = ["-data"]
+        unique_together = (('tenant', 'document'),)
+        indexes = [
+            models.Index(fields=['tenant', 'is_active']),
+            models.Index(fields=['tenant', 'document']),
+        ]
+        verbose_name = 'Supplier'
+        verbose_name_plural = 'Suppliers'
+
+    def anonymize(self):
+        self.name = ""
+        self.document = ""
+        self.email = ""
+        self.phone = ""
+        self.is_anonymized = True
+        self.save()
 
     def __str__(self):
-        return f"{self.data} - {self.descricao} - {self.valor}"
+        return self.name
 
-class Despesa(TenantAwareModel):
-    data = models.DateField()
-    descricao = models.CharField(max_length=255)
-    valor = models.DecimalField(max_digits=10, decimal_places=2)
-    fornecedor = models.ForeignKey(Fornecedor, on_delete=models.SET_NULL, null=True, blank=True, related_name="despesas")
-    categoria = models.ForeignKey(Categoria, on_delete=models.PROTECT, related_name="despesas", limit_choices_to={"tipo": "Despesa"})
-    # tenant field is implicit
+class Category(TenantAwareModel):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
 
     class Meta:
-        verbose_name = "Despesa"
-        verbose_name_plural = "Despesas"
-        ordering = ["-data"]
+        indexes = [models.Index(fields=['tenant', 'is_active'])]
+        verbose_name = 'Category'
+        verbose_name_plural = 'Categories'
 
     def __str__(self):
-        return f"{self.data} - {self.descricao} - {self.valor}"
+        return self.name
 
-class ContaPagarReceber(TenantAwareModel):
-    TIPO_CHOICES = [
-        ("Pagar", "A Pagar"),
-        ("Receber", "A Receber"),
-    ]
-    STATUS_CHOICES = [
-        ("Pendente", "Pendente"),
-        ("Pago", "Pago"),
-        ("Atrasado", "Atrasado"),
-        ("Cancelado", "Cancelado"), # Added Cancelado status
-    ]
-
-    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
-    descricao = models.CharField(max_length=255)
-    valor = models.DecimalField(max_digits=10, decimal_places=2)
-    data_vencimento = models.DateField()
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="Pendente")
-    data_pagamento = models.DateField(null=True, blank=True)
-    cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True, related_name="contas_receber")
-    fornecedor = models.ForeignKey(Fornecedor, on_delete=models.SET_NULL, null=True, blank=True, related_name="contas_pagar")
-    # tenant field is implicit
+class BankAccount(TenantAwareModel):
+    name = models.CharField(max_length=100)
+    bank = models.CharField(max_length=100)
+    branch = models.CharField(max_length=20)
+    account_number = models.CharField(max_length=20)
+    initial_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    current_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0)
 
     class Meta:
-        verbose_name = "Conta a Pagar/Receber"
-        verbose_name_plural = "Contas a Pagar/Receber"
-        ordering = ["data_vencimento"]
+        indexes = [
+            models.Index(fields=['tenant', 'is_active']),
+            models.Index(fields=['tenant', 'name']),
+        ]
+        verbose_name = 'Bank Account'
+        verbose_name_plural = 'Bank Accounts'
 
     def __str__(self):
-        return f"{self.get_tipo_display()} - {self.descricao} - Venc: {self.data_vencimento} - Status: {self.get_status_display()}"
+        return f"{self.name} - {self.bank}"
 
-    # Add logic for status updates (e.g., in save method or via a separate service/task)
-    # def save(self, *args, **kwargs):
-    #     if not self.pk: # Check if new
-    #         # Initial status logic if needed
-    #         pass
-    #     # Update status based on dates if needed (consider doing this in a service)
-    #     super().save(*args, **kwargs)
+class Expense(TenantAwareModel):
+    category = models.ForeignKey(Category, on_delete=models.PROTECT)
+    supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, blank=True, null=True)
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    date = models.DateField()
+    description = models.TextField(blank=True, null=True)
+    paid = models.BooleanField(default=False)
+    account = models.ForeignKey(BankAccount, on_delete=models.PROTECT)
+    document = models.CharField(max_length=100)
+    is_anonymized = models.BooleanField(default=False)
 
+    class Meta:
+        unique_together = (('tenant', 'document'),)
+        indexes = [
+            models.Index(fields=['tenant', 'is_active']),
+            models.Index(fields=['tenant', 'document']),
+        ]
+        verbose_name = 'Expense'
+        verbose_name_plural = 'Expenses'
+
+    def anonymize(self):
+        self.document = ""
+        self.description = ""
+        self.is_anonymized = True
+        self.save()
+
+    def __str__(self):
+        return f"{self.category} - {self.amount}"
+
+class Revenue(TenantAwareModel):
+    category = models.ForeignKey(Category, on_delete=models.PROTECT)
+    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, blank=True, null=True)
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    date = models.DateField()
+    description = models.TextField(blank=True, null=True)
+    received = models.BooleanField(default=False)
+    account = models.ForeignKey(BankAccount, on_delete=models.PROTECT)
+    document = models.CharField(max_length=100)
+    is_anonymized = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = (('tenant', 'document'),)
+        indexes = [
+            models.Index(fields=['tenant', 'is_active']),
+            models.Index(fields=['tenant', 'document']),
+        ]
+        verbose_name = 'Revenue'
+        verbose_name_plural = 'Revenues'
+
+    def anonymize(self):
+        self.document = ""
+        self.description = ""
+        self.is_anonymized = True
+        self.save()
+
+    def __str__(self):
+        return f"{self.category} - {self.amount}"
+
+class Transfer(TenantAwareModel):
+    source_account = models.ForeignKey(BankAccount, related_name='outgoing_transfers', on_delete=models.PROTECT)
+    destination_account = models.ForeignKey(BankAccount, related_name='incoming_transfers', on_delete=models.PROTECT)
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    date = models.DateField()
+    description = models.TextField(blank=True, null=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['tenant', 'is_active']),
+            models.Index(fields=['tenant', 'source_account', 'destination_account']),
+        ]
+        verbose_name = 'Transfer'
+        verbose_name_plural = 'Transfers'
+
+    def __str__(self):
+        return f"{self.source_account} -> {self.destination_account} - {self.amount}"

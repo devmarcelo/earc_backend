@@ -1,16 +1,52 @@
-# settings_app/models.py
 from django.db import models
+from core.models import TenantAwareModel
 
-# No specific models needed here for now.
-# Tenant-specific settings like theme are stored in core.Tenant model (theme_settings JSONField).
-# User management is handled via core.User.
+class Parameter(TenantAwareModel):
+    key = models.CharField(max_length=100, unique=True)
+    value = models.TextField(blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    is_anonymized = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
 
-# If specific, granular settings per tenant are needed later,
-# they can be added here as a TenantAwareModel.
-# Example:
-# from core.models import TenantAwareModel
-# class TenantConfiguration(TenantAwareModel):
-#     enable_feature_x = models.BooleanField(default=False)
-#     notification_preference = models.CharField(max_length=50, default=\"email\")
-#     # ... other settings
+    class Meta:
+        indexes = [
+            models.Index(fields=['tenant', 'is_active']),
+            models.Index(fields=['tenant', 'key']),
+        ]
+        verbose_name = 'Parameter'
+        verbose_name_plural = 'Parameters'
 
+    def anonymize(self):
+        self.value = ""
+        self.description = ""
+        self.is_anonymized = True
+        self.save()
+
+    def __str__(self):
+        return self.key
+
+class Integration(TenantAwareModel):
+    name = models.CharField(max_length=150)
+    service = models.CharField(max_length=100)
+    credentials = models.JSONField(default=dict, blank=True, null=True)
+    is_anonymized = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    description = models.TextField(blank=True, null=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['tenant', 'is_active']),
+            models.Index(fields=['tenant', 'service']),
+        ]
+        verbose_name = 'Integration'
+        verbose_name_plural = 'Integrations'
+
+    def anonymize(self):
+        self.name = ""
+        self.credentials = {}
+        self.description = ""
+        self.is_anonymized = True
+        self.save()
+
+    def __str__(self):
+        return self.name
