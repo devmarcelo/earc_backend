@@ -1,19 +1,40 @@
-# hr/views.py
-from rest_framework import viewsets, permissions
+from rest_framework import permissions
 from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import Funcionario
-from .serializers import FuncionarioSerializer
-# Ensure the import points to the correct location
-from core.views import TenantAwareViewSet 
+from .models import Employee, Payroll, Attendance
+from .serializers import EmployeeSerializer, PayrollSerializer, AttendanceSerializer
+from core.views import TenantAwareViewSet
 
-class FuncionarioViewSet(TenantAwareViewSet):
-    queryset = Funcionario.objects.all()
-    serializer_class = FuncionarioSerializer
+class EmployeeViewSet(TenantAwareViewSet):
+    queryset = Employee.objects.all()
+    serializer_class = EmployeeSerializer
     filterset_fields = {
-        "cargo": ["exact", "icontains"],
-        "salario_base": ["exact", "gte", "lte"],
-        "data_proximo_pagamento": ["exact", "gte", "lte"],
+        "name": ["exact", "icontains"],
+        "document": ["exact"],
+        "job_title": ["exact", "icontains"],
+        "hire_date": ["exact", "gte", "lte"],
+        "termination_date": ["exact", "gte", "lte"],
+        "is_active": ["exact"],
     }
-    search_fields = ["nome", "cargo"]
+    search_fields = ["name", "document", "job_title", "email", "phone"]
 
+class PayrollViewSet(TenantAwareViewSet):
+    queryset = Payroll.objects.select_related("employee")
+    serializer_class = PayrollSerializer
+    filterset_fields = {
+        "employee": ["exact"],
+        "period": ["exact"],
+        "payment_date": ["exact", "gte", "lte"],
+        "is_active": ["exact"],
+    }
+    search_fields = ["employee__name", "period", "notes"]
+
+class AttendanceViewSet(TenantAwareViewSet):
+    queryset = Attendance.objects.select_related("employee")
+    serializer_class = AttendanceSerializer
+    filterset_fields = {
+        "employee": ["exact"],
+        "date": ["exact", "gte", "lte"],
+        "is_active": ["exact"],
+    }
+    search_fields = ["employee__name", "date", "notes"]

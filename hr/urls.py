@@ -1,12 +1,8 @@
-# hr/urls.py
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import FuncionarioViewSet
-
-router = DefaultRouter()
-router.register(r"funcionarios", FuncionarioViewSet, basename="funcionario")
 
 urlpatterns = [
-    path("", include(router.urls)),
+    path('employees/', include('hr.urls_employees')),
+    path('payrolls/', include('hr.urls_payrolls')),
+    path('attendances/', include('hr.urls_attendances')),
+    # Adicione outros domínios aqui conforme o sistema crescer (ex: leaves, benefits, etc)
 ]
-
