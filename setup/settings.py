@@ -104,6 +104,7 @@ MIDDLEWARE = [
     # --- Custom Middleware --- Start ---
     # Middleware para capturar o usuário atual para auditoria
     "core.middleware.CurrentUserMiddleware",
+    "core.middleware.RequestResponseCentralizerMiddleware",
     # Optional: Header-based tenant identification (use with caution)
     # 'core.middleware.TenantHeaderMiddleware',
     # RLS Middleware: Must run AFTER tenant identification
