@@ -11,7 +11,6 @@ urlpatterns = [
     path("api/v1/hr/", include("hr.urls")),             # Create later
     path("api/v1/reports/", include("reports.urls")),     # Create later
     path("api/v1/settings/", include("settings_app.urls")), # Create later
-    path("api/v1/categories/", include("core.urls_categories")), # Categories might be shared or managed centrally, place appropriately
 
     # Include other tenant-specific URL patterns here
 ]
