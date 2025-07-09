@@ -1,19 +1,42 @@
-# inventory/views.py
-from rest_framework import viewsets, permissions
+from rest_framework import permissions
 from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import ItemEstoque
-from .serializers import ItemEstoqueSerializer
-# Ensure the import points to the correct location
-from core.views import TenantAwareViewSet 
+from .models import Product, StockMovement, InventoryCount
+from .serializers import ProductSerializer, StockMovementSerializer, InventoryCountSerializer
+from core.views import TenantAwareViewSet
 
-class ItemEstoqueViewSet(TenantAwareViewSet):
-    queryset = ItemEstoque.objects.all().select_related("categoria") # Optimize query
-    serializer_class = ItemEstoqueSerializer
+class ProductViewSet(TenantAwareViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
     filterset_fields = {
-        "quantidade": ["exact", "gte", "lte"],
-        "custo_unitario": ["exact", "gte", "lte"],
-        "categoria": ["exact"],
+        "name": ["exact", "icontains"],
+        "sku": ["exact"],
+        "unit": ["exact"],
+        "cost_price": ["exact", "gte", "lte"],
+        "sale_price": ["exact", "gte", "lte"],
+        "minimum_stock": ["exact", "gte", "lte"],
+        "current_stock": ["exact", "gte", "lte"],
+        "is_active": ["exact"],
     }
-    search_fields = ["nome_produto", "categoria__nome"]
+    search_fields = ["name", "sku", "description"]
 
+class StockMovementViewSet(TenantAwareViewSet):
+    queryset = StockMovement.objects.select_related("product")
+    serializer_class = StockMovementSerializer
+    filterset_fields = {
+        "product": ["exact"],
+        "movement_type": ["exact"],
+        "date": ["exact", "gte", "lte"],
+        "is_active": ["exact"],
+    }
+    search_fields = ["product__name", "reference", "notes"]
+
+class InventoryCountViewSet(TenantAwareViewSet):
+    queryset = InventoryCount.objects.select_related("product")
+    serializer_class = InventoryCountSerializer
+    filterset_fields = {
+        "product": ["exact"],
+        "date": ["exact", "gte", "lte"],
+        "is_active": ["exact"],
+    }
+    search_fields = ["product__name", "notes"]

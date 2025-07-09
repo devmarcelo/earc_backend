@@ -1,31 +1,48 @@
-# inventory/serializers.py
 from rest_framework import serializers
-from .models import ItemEstoque
-from core.serializers import CategoriaSerializer # Reuse Categoria serializer
-from core.models import Categoria
+from .models import Product, StockMovement, InventoryCount
 
-class ItemEstoqueSerializer(serializers.ModelSerializer):
-    categoria = CategoriaSerializer(read_only=True)
-    categoria_id = serializers.PrimaryKeyRelatedField(
-        queryset=Categoria.objects.filter(tipo="Estoque"), source="categoria", write_only=True
-    )
-    valor_total = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+class ProductSerializer(serializers.ModelSerializer):
     created_by = serializers.StringRelatedField(read_only=True)
     updated_by = serializers.StringRelatedField(read_only=True)
     tenant_id = serializers.IntegerField(source='tenant.id', read_only=True)
 
     class Meta:
-        model = ItemEstoque
+        model = Product
         fields = [
-            "id", "nome_produto", "quantidade", "custo_unitario", "valor_total",
-            "categoria", # Read-only nested
-            "categoria_id", # Write-only PK
-            "created_on", "updated_at", "created_by", "updated_by", "tenant_id"
+            "id", "name", "sku", "description", "unit",
+            "cost_price", "sale_price", "minimum_stock", "current_stock",
+            "image", "is_active", "is_anonymized",
+            "created_on", "updated_on", "created_by", "updated_by", "tenant_id"
         ]
-        read_only_fields = ["id", "valor_total", "created_on", "updated_at", "created_by", "updated_by", "tenant_id"]
+        read_only_fields = [
+            "id", "created_on", "updated_on", "created_by", "updated_by", "tenant_id"
+        ]
 
-    def validate_categoria_id(self, value):
-        """Ensure the category is of type Estoque."""
-        if value.tipo != "Estoque":
-            raise serializers.ValidationError("A categoria selecionada não é do tipo Estoque.")
-        return value
+class StockMovementSerializer(serializers.ModelSerializer):
+    product = serializers.StringRelatedField(read_only=True)
+    tenant_id = serializers.IntegerField(source='tenant.id', read_only=True)
+
+    class Meta:
+        model = StockMovement
+        fields = [
+            "id", "product", "quantity", "date", "movement_type",
+            "reference", "notes", "is_active", "is_anonymized",
+            "created_on", "updated_on", "tenant_id"
+        ]
+        read_only_fields = [
+            "id", "created_on", "updated_on", "tenant_id", "product"
+        ]
+
+class InventoryCountSerializer(serializers.ModelSerializer):
+    product = serializers.StringRelatedField(read_only=True)
+    tenant_id = serializers.IntegerField(source='tenant.id', read_only=True)
+
+    class Meta:
+        model = InventoryCount
+        fields = [
+            "id", "product", "counted_quantity", "date", "notes",
+            "is_active", "is_anonymized", "created_on", "updated_on", "tenant_id"
+        ]
+        read_only_fields = [
+            "id", "created_on", "updated_on", "tenant_id", "product"
+        ]

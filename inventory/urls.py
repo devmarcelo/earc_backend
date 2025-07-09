@@ -1,12 +1,8 @@
-# inventory/urls.py
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import ItemEstoqueViewSet
-
-router = DefaultRouter()
-router.register(r"itens", ItemEstoqueViewSet, basename="itemestoque")
 
 urlpatterns = [
-    path("", include(router.urls)),
+    path('products/', include('inventory.urls_products')),
+    path('stockmovements/', include('inventory.urls_stockmovements')),
+    path('inventorycounts/', include('inventory.urls_inventorycounts')),
+    # Adicione outros domínios aqui conforme o sistema crescer
 ]
-
