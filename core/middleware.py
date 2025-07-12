@@ -30,77 +30,19 @@ class CurrentUserTenantMiddleware:
 
 class RequestResponseCentralizerMiddleware:
     """
-    Middleware centralizador: logging, validação, padronização de resposta e erros para toda a aplicação.
+    Middleware centralizador: logging, rastreamento, validação da request (via handler), e headers.
+    NUNCA manipula ou re-formata o body/response.data.
     """
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        try:
-            result = self.process_request(request)
-            if result is not None:
-                return result
-            response = self.get_response(request)
-            return self.process_response(request, response)
-        except Exception as exc:
-            return self.process_exception(request, exc)
-
-    def process_request(self, request):
-        try:
-            handle_request(request)
-        except APIException as exc:
-            return error_response(
-                errors={exc.get_codes(): [exc.detail]},
-                message=str(exc.detail),
-                status=exc.status_code,
-                code=exc.get_codes()
-            )
-
-    def process_exception(self, request, exception):
-        from django.http import Http404
+        # Valida e rastreia a request
+        handle_request(request)
+        # Continua o fluxo normalmente
+        response = self.get_response(request)
+        # Adiciona trace_id nos headers
         trace_id = getattr(request, "request_id", None)
-        if isinstance(exception, Http404):
-            return error_response(
-                errors={"detail": ["Endpoint não encontrado."]},
-                message="Recurso não encontrado.",
-                status=404,
-                code="not_found",
-                trace_id=trace_id
-            )
-        if isinstance(exception, APIException):
-            return error_response(
-                errors={exception.get_codes(): [exception.detail]},
-                message=str(exception.detail),
-                status=exception.status_code,
-                code=exception.get_codes(),
-                trace_id=trace_id
-            )
-        # Erros inesperados
-        return error_response(
-            errors={"detail": [str(exception)]},
-            message="Erro interno do servidor.",
-            status=500,
-            code="internal_server_error",
-            trace_id=trace_id
-        )
-
-    def process_response(self, request, response):
-        trace_id = getattr(request, "request_id", None)
-        if isinstance(response, Response):
-            if isinstance(response.data, dict) and "success" in response.data and "message" in response.data:
-                response.data["trace_id"] = trace_id
-                return response
-            if response.status_code >= 400:
-                return error_response(
-                    errors=response.data,
-                    message="Erro ao processar requisição.",
-                    status=response.status_code,
-                    trace_id=trace_id
-                )
-            return success_response(
-                message="Operação realizada com sucesso.",
-                data=response.data,
-                status=response.status_code,
-                trace_id=trace_id
-            )
+        if trace_id:
+            response['X-Trace-ID'] = trace_id
         return response

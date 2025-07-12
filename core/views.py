@@ -41,13 +41,26 @@ class TenantAwareViewSet(viewsets.ModelViewSet):
     #        serializer.save()
 
 # Add other core views here if needed, e.g., for tenant registration
-from rest_framework import generics
+from rest_framework import generics, permissions, status
 from .serializers import RegisterTenantSerializer
-from .models import Tenant, Domain
+from core.handlers.response import success_response
 
 class RegisterTenantView(generics.CreateAPIView):
     serializer_class = RegisterTenantSerializer
-    permission_classes = [permissions.AllowAny] # Allow anyone to register a new tenant
+    permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        trace_id = getattr(request, "request_id", None)
+        headers = self.get_success_headers(serializer.data)
+        return success_response(
+            data=serializer.data,
+            message="Empresa criada com sucesso.",
+            trace_id=trace_id,
+            status=status.HTTP_201_CREATED
+        )
     
     def perform_create(self, serializer):
         # The serializer's create method handles tenant, domain, and user creation

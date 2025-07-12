@@ -1,5 +1,5 @@
 import os
-import _uuid
+import uuid
 from django.conf import settings
 from django.core.files.storage import default_storage
 from django.core.exceptions import ValidationError

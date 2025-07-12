@@ -103,12 +103,12 @@ MIDDLEWARE = [
     
     # --- Custom Middleware --- Start ---
     # Middleware para capturar o usuário atual para auditoria
-    "core.middleware.CurrentUserMiddleware",
+    "core.middleware.CurrentUserTenantMiddleware",
     "core.middleware.RequestResponseCentralizerMiddleware",
     # Optional: Header-based tenant identification (use with caution)
     # 'core.middleware.TenantHeaderMiddleware',
     # RLS Middleware: Must run AFTER tenant identification
-    'core.middleware.RowLevelSecurityMiddleware',
+    # 'core.middleware.RowLevelSecurityMiddleware',
     # --- Custom Middleware --- End ---
 ]
 
@@ -232,8 +232,9 @@ REST_FRAMEWORK = {
         'anon': '100/day', # Limit for anonymous users
         'user': '1000/day' # Limit for authenticated users
         # Consider more granular scopes later if needed
-    }
+    },
     # --- Rate Limiting Configuration --- End ---
+    "EXCEPTION_HANDLER": "core.handlers.exception_handler.custom_exception_handler",
 }
 
 # DRF Spectacular (OpenAPI/Swagger) Settings
