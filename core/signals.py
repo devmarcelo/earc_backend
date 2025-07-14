@@ -37,13 +37,13 @@ def set_audit_fields(sender, instance, **kwargs):
     if current_tenant and hasattr(instance, 'tenant') and not instance.tenant_id:
         instance.tenant = current_tenant
     
-    if not current_user:
+    if not current_user or getattr(current_user, 'is_anonymous', False):
         return
     
     # Se é uma nova instância (sem ID), preenche created_by
-    if not instance.pk and hasattr(instance, 'created_by'):
+    if not instance.pk and hasattr(instance, 'created_by') and not instance.created_by_id:
         instance.created_by = current_user
     
     # Sempre atualiza updated_by em qualquer operação de salvamento
-    if hasattr(instance, 'updated_by'):
+    if hasattr(instance, 'updated_by') and not instance.updated_by_id:
         instance.updated_by = current_user
