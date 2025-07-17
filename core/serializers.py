@@ -1,8 +1,11 @@
 from django.conf import settings
+from django.contrib.auth import authenticate
 from django.core.files.storage import default_storage
 from core.custom_fields.fields import FileOrUrlField
 from rest_framework import serializers
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.db import transaction
+from django.utils.translation import gettext_lazy as _
 from .models import User, Tenant, Domain, Address
 from core.services.upload import save_upload_file, ALLOWED_IMAGE_EXTENSIONS
 from rest_framework.exceptions import ValidationError
@@ -101,7 +104,7 @@ class RegisterTenantSerializer(serializers.Serializer):
     def validate(self, data):
         with schema_context("public"):
             errors = {}
-            # Validações de unicidade, senha, aceitação etc.
+            
             if Tenant.objects.filter(document=data['document']).exists():
                 errors['document'] = ["Já existe uma empresa cadastrada com esse documento."]
             if User.objects.filter(email=data['email']).exists():
@@ -115,17 +118,13 @@ class RegisterTenantSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
-        #request = self.context['request']
         logo_url = None
         avatar_url = None
         logo_tmp_path = None
         avatar_tmp_path = None
 
-        schema_name = validated_data['schema_name']  # Usado como domínio para subdiretório
-
-        # Upload do logo (opcional)
+        schema_name = validated_data['schema_name']
         logo_file = validated_data.get("logo")
-        # Upload do avatar (opcional)
         avatar_file = validated_data.get('avatar')
 
         with schema_context("public"):
@@ -177,6 +176,13 @@ class RegisterTenantSerializer(serializers.Serializer):
                     )
 
                     print("Tenant criado: ", tenant)
+                    domain = Domain.objects.create(
+                        domain=f"{schema_name}.{settings.PARENT_DOMAIN}",
+                        tenan=tenant,
+                        is_primary=True
+                    )
+
+                    print("Domínio criado: ", domain)
                     user = User.objects.create_user(
                         tenant=tenant,
                         email=validated_data['email'],
@@ -207,9 +213,44 @@ class RegisterTenantSerializer(serializers.Serializer):
             except Exception as e:
                 print("Erro ao criar registro: ", str(e))
                 traceback.print_exc()
-                # Rollback dos arquivos já salvos se falhar após upload
+                
                 if logo_tmp_path:
                     default_storage.delete(logo_tmp_path)
                 if avatar_tmp_path:
                     default_storage.delete(avatar_tmp_path)
                 raise ValidationError({"non_field_errors": [f"Falha no cadastro: {str(e)}"]})
+            
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
+
+        if not email or not password:
+            raise serializers.ValidationError(_('E-mail e senha são obrigatórios.'))
+
+        request = self.context.get('request')
+        if request is None:
+            raise serializers.ValidationError(_("Request não disponível no context do serializer."))
+            
+        tenant = getattr(request, 'tenant', None)
+        if not tenant:
+            raise serializers.ValidationError(_('Tenant não identificado.'))
+
+        try:
+            user = User.objects.get(email=email, tenant=tenant)
+        except User.DoesNotExist:
+            raise serializers.ValidationError(_('Usuário ou senha inválidos.'))
+
+        user = authenticate(request=request, email=email, password=password)
+        if not user:
+            raise serializers.ValidationError(_('Usuário ou senha inválidos.'))
+
+        if not user.is_active:
+            raise serializers.ValidationError(_('Conta desativada.'))
+
+        attrs['user'] = user
+        attrs['tenant'] = tenant
+        return attrs

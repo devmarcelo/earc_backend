@@ -1,14 +1,16 @@
 # core/urls_auth.py
+from core.views import LoginView
 from django.urls import path, include
+from core.views import TokenRefreshView
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
-    TokenRefreshView,
     TokenVerifyView,
 )
 # Import your custom registration view if you create one
 # from .views import RegisterTenantView
 
 urlpatterns = [
+    path("login/", LoginView.as_view(), name="login"),
     # JWT Authentication
     path("token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),

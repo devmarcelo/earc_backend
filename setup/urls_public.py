@@ -9,10 +9,10 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("register-company/", RegisterTenantView.as_view(), name="register-company"),
     # Auth endpoints (Login, Register, Refresh, OAuth) - Reside in public schema
-    path("api/v1/auth/", include("core.urls_auth")), # Create this file later
+    path("v1/auth/", include("core.urls_auth")), # Create this file later
     # API Schema (Swagger/Redoc) - Publicly accessible
-    path("api/v1/schema/", SpectacularAPIView.as_view(), name="schema"),
-    path("api/v1/schema/swagger-ui/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
-    path("api/v1/schema/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+    path("v1/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("v1/schema/swagger-ui/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    path("v1/schema/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
     # Include other public-specific endpoints if any
 ]

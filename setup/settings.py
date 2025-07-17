@@ -34,6 +34,8 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
 # In production, this should be dynamically populated or use wildcards carefully
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,.localhost").split(",") # Added .localhost for tenant subdomains in dev
 
+PARENT_DOMAIN = os.getenv('PARENT_DOMAIN', 'localhost')
+
 
 # Application definition
 
@@ -248,11 +250,11 @@ SPECTACULAR_SETTINGS = {
 
 # JWT Settings (Simple JWT)
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
-    "ROTATE_REFRESH_TOKENS": False,
-    "BLACKLIST_AFTER_ROTATION": False,
-    "UPDATE_LAST_LOGIN": False,
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
 
     "ALGORITHM": "HS256",
     "SIGNING_KEY": SECRET_KEY,
@@ -287,12 +289,14 @@ CORS_ALLOW_ALL_ORIGINS = False # More secure default
 CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",") # Vite default port is 5173
 
 # Option 2: Use Regex for dynamic tenant subdomains (more complex setup)
-# CORS_ALLOWED_ORIGIN_REGEXES = [
-#     r"^https?:\/\/localhost(:\d+)?$", # Allow localhost for dev
-#     r"^https?:\/\/127\.0\.0\.1(:\d+)?$", # Allow 127.0.0.1 for dev
-#     # Regex to match tenant subdomains on your production domain
-#     # Example: r"^https?:\/\/(\w+)\.yourappdomain\.com$", 
-# ]
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https?:\/\/localhost(:\d+)?$", # Allow localhost for dev
+    r"^https?:\/\/([a-z0-9\-]+)\.localhost(:\d+)?$", # Allow localhost for dev
+    r"^https?:\/\/127\.0\.0\.1(:\d+)?$", # Allow 127.0.0.1 for dev
+    r"^https?:\/\/([a-z0-9\-]+)\.127\.0\.0\.1(:\d+)?$", # Allow 127.0.0.1 for dev
+    # Regex to match tenant subdomains on your production domain
+    # Example: r"^https?:\/\/(\w+)\.yourappdomain\.com$", 
+]
 
 # Option 3: Dynamically populate CORS_ALLOWED_ORIGINS based on Domain model
 # This requires custom logic, potentially in middleware or a startup script.
@@ -359,11 +363,47 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': (
+                '[{asctime}] {levelname} [{tenant}] {name}:{lineno} {message}'
+            ),
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'filters': {
+        'tenant_context': {
+            '()': 'core.logg.TenantLogFilter',
+        }
+    },
     'handlers': {
         'console': {
-            'level': 'DEBUG',
             'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+            'filters': ['tenant_context']
         },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/django.log'),
+            'formatter': 'verbose',
+            'filters': ['tenant_context'],
+        },
+        'sql': {
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/sql.log'),
+            'formatter': 'simple',
+        },
+        # Configuração para Sentry, ELK, etc:
+        # 'sentry': {
+        #     'class': 'raven.handlers.logging.SentryHandler',
+        #     'filename': os.path.join(BASE_DIR, 'log/sql.log'),
+        #     'formatter': 'simple',
+        #     'dsn': os.getenv('SENTRY_DSN')
+        # },
     },
     'root': {
         'handlers': ['console'],
@@ -372,21 +412,27 @@ LOGGING = {
     'loggers': {
         'django.db.backends': {
             'handlers': ['console'],
-            'level': 'DEBUG'
+            'level': 'DEBUG',
+            'propagate': False,
         },
         'django.request': {
             'handlers': ['console'],
             'level': 'DEBUG'
         },
         'django': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
-            'propagate': False,
         },
         'django_tenants': {
             'handlers': ['console'],
             'level': 'INFO',
             'propagate': True,
         },
+        # Para integração futura:
+        # 'django.request': {
+        #     'handlers': ['sentry'],
+        #     'level': 'ERROR',
+        #     'propagate': True
+        # }
     },
 }
