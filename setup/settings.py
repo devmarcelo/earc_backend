@@ -17,9 +17,24 @@ from dotenv import load_dotenv
 from pathlib import Path
 from datetime import timedelta # Import timedelta here
 
+# Sentry SDK
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
+
+# Sentry Integration
+SENTRY_DSN = os.getenv('SENTRY_DSN', None)
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration()],
+        send_default_pii=False,  # Nunca envie dados sensíveis!
+        environment=os.getenv('ENVIRONMENT', 'development'),
+        traces_sample_rate=0.1,  # 1.0 em prod, <= 0.1 em dev
+    )
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -359,7 +374,9 @@ LOGOUT_REDIRECT_URL = '/' # Or frontend URL
 # Email Backend (configure for real email sending in production)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# Logging Configuration (optional, customize as needed)
+# Logging Configuration
+os.makedirs(BASE_DIR / 'logs', exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -377,7 +394,7 @@ LOGGING = {
     },
     'filters': {
         'tenant_context': {
-            '()': 'core.logg.TenantLogFilter',
+            '()': 'core.logging.TenantLogFilter',
         }
     },
     'handlers': {
@@ -387,36 +404,35 @@ LOGGING = {
             'filters': ['tenant_context']
         },
         'file': {
-            'class': 'logging.FileHandler',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
             'filename': os.path.join(BASE_DIR, 'logs/django.log'),
             'formatter': 'verbose',
             'filters': ['tenant_context'],
+            'when': 'midnight',
+            'backupCount': 30,  # Mantém 30 arquivos diários
+            'encoding': 'utf8',
         },
         'sql': {
-            'class': 'logging.FileHandler',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
             'filename': os.path.join(BASE_DIR, 'logs/sql.log'),
             'formatter': 'simple',
+            'when': 'midnight',
+            'backupCount': 7,
+            'encoding': 'utf8',
         },
-        # Configuração para Sentry, ELK, etc:
-        # 'sentry': {
-        #     'class': 'raven.handlers.logging.SentryHandler',
-        #     'filename': os.path.join(BASE_DIR, 'log/sql.log'),
-        #     'formatter': 'simple',
-        #     'dsn': os.getenv('SENTRY_DSN')
-        # },
     },
     'root': {
-        'handlers': ['console'],
+        'handlers': ['console', 'file'],
         'level': 'INFO',
     },
     'loggers': {
         'django.db.backends': {
-            'handlers': ['console'],
+            'handlers': ['console', 'sql'],
             'level': 'DEBUG',
             'propagate': False,
         },
         'django.request': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'DEBUG'
         },
         'django': {
@@ -424,15 +440,14 @@ LOGGING = {
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
         },
         'django_tenants': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': True,
         },
-        # Para integração futura:
-        # 'django.request': {
-        #     'handlers': ['sentry'],
-        #     'level': 'ERROR',
-        #     'propagate': True
-        # }
+        'core.security': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False
+        }
     },
 }

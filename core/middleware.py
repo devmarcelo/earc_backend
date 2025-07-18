@@ -1,10 +1,18 @@
 import threading
+import logging
+
 from rest_framework.response import Response
 from rest_framework.exceptions import APIException
 from core.handlers.request import handle_request
-from core.handlers.response import success_response, error_response
+
+try:
+    import sentry_sdk
+    HAS_SENTRY = True
+except ImportError:
+    HAS_SENTRY = False
 
 _thread_locals = threading.local()
+request_logger = logging.getLogger("core.request")
 
 def get_current_user():
     """Return the current user from thread-local storage."""
@@ -25,8 +33,7 @@ class CurrentUserTenantMiddleware:
     def __call__(self, request):
         _thread_locals.user = getattr(request, 'user', None)
         _thread_locals.tenant = getattr(request, 'tenant', None)
-        response = self.get_response(request)
-        return response
+        return self.get_response(request)
 
 class RequestResponseCentralizerMiddleware:
     """
@@ -39,10 +46,33 @@ class RequestResponseCentralizerMiddleware:
     def __call__(self, request):
         # Valida e rastreia a request
         handle_request(request)
-        # Continua o fluxo normalmente
-        response = self.get_response(request)
-        # Adiciona trace_id nos headers
         trace_id = getattr(request, "request_id", None)
+
+        if not trace_id:
+            import uuid
+            trace_id = str(uuid.uuid4())
+            setattr(request, "request_id", trace_id)
+
+        # Integra o trace_id ao contexto do Sentry (se ativado)
+        if HAS_SENTRY:
+            with sentry_sdk.configure_scope() as scope:
+                scope.set_tag("trace_id", trace_id)
+                if hasattr(request, 'user') and getattr(request.user, 'email', None):
+                    scope.user = {"email": request.user.email}
+
+        # Logging de início da request
+        request_logger.info(
+            f"START | TRACE_ID={trace_id} | PATH={request.path} | METHOD={request.method} | USER={getattr(request.user, 'email', 'anon')}"
+        )
+
+        response = self.get_response(request)
+
         if trace_id:
             response['X-Trace-ID'] = trace_id
+
+        # Logging de fim da request
+        request_logger.info(
+            f"END | TRACE_ID={trace_id} | PATH={request.path} | STATUS={getattr(response, 'status_code', '?')}"
+        )
+
         return response
