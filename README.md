@@ -63,15 +63,21 @@ backend/                # Aplicação Django
 
 3. Execute as migrations:
 
+```sh
 python manage.py migrate_schemas
+```
 
 4. Crie um superuser:
 
+```sh
 python manage.py createsuperuser --schema=empresa_admin
+```
 
 5. Rode o servidor:
 
+```sh
 python manage.py runserver
+```
 
 ## Criação de Tenants
 
