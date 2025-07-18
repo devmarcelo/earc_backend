@@ -2,8 +2,15 @@
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
+    # OpenAPI JSON
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    # Swagger UI (interativa)
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    # Redoc (opcional)
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     # Include API endpoints for tenant-specific apps
     path("api/", include("setup.urls_public")),
     path("api/v1/financial/", include("financial.urls")), # Create later

@@ -1,4 +1,4 @@
-# eARC - Sistema de Gestão Empresarial Multitenant
+# eARC Backend - Sistema de Gestão Empresarial Multitenant
 
 ## Visão Geral
 
@@ -18,19 +18,16 @@ O eARC implementa uma arquitetura multitenant com isolamento rigoroso usando:
 
 - **Middleware de tenant** para identificação e roteamento correto
 
-### Stack Tecnológica
+## Tecnologias e Ferramentas
 
-#### Backend
-
-- **Django (Python)** com middleware de tenant (django-tenant-schemas)
-
-- **PostgreSQL** com schemas separados por tenant
-
-- Autenticação: JWT + OAuth2 (Google/GitHub via django-allauth)
-
-- APIs RESTful com isolamento por tenant em todas as queries
-
-- Documentação OpenAPI/Swagger
+- **Django** 5.x + django-tenants
+- **PostgreSQL** (schemas isolados)
+- **DRF** (Django Rest Framework)
+- **JWT** (SimpleJWT)
+- **drf-spectacular** (Swagger/OpenAPI)
+- **pytest/pytest-django** (testes)
+- **Sentry** (monitoramento)
+- **Logging** multitenant com trace_id
 
 ## Estrutura do Projeto
 
@@ -54,25 +51,27 @@ backend/                # Aplicação Django
 
 - Ambiente virtual Python (venv)
 
-## Instalação e Configuração
+## Instalação e Configuração Local
 
-### Backend (Django)
+1. Instale dependências:
 
-1. Clone o repositório:
+   ```sh
+   pip install -r requirements.txt
+   ```
 
-2. Crie e ative um ambiente virtual:
+2. Configure seu .env (use .env.example como base).
 
-3. Instale as dependências:
+3. Execute as migrations:
 
-4. Configure o banco de dados PostgreSQL:
+python manage.py migrate_schemas
 
-5. Configure as variáveis de ambiente (crie um arquivo `.env` na raiz do backend):
+4. Crie um superuser:
 
-7. Execute as migrações:
+python manage.py createsuperuser --schema=empresa_admin
 
-8. Crie um superusuário:
+5. Rode o servidor:
 
-9. Inicie o servidor de desenvolvimento:
+python manage.py runserver
 
 ## Criação de Tenants
 
@@ -88,6 +87,45 @@ domain = Domain(domain='cliente1.localhost', tenant=tenant, is_primary=True)
 domain.save()
 ```
 
+## Padrões de API
+
+- Toda resposta traz success, message, e opcionalmente trace_id.
+
+- Erros sempre no padrão:
+
+  ```json
+  {
+    "success": false,
+    "message": "Mensagem amigável de erro",
+    "errors": { ... },
+    "trace_id": "uuid-123..."
+  }
+  ```
+
+- O header X-Tenant é obrigatório em todas as requests autenticadas.
+
+## Endpoints Principais
+
+- Autenticação: /api/v1/auth/login/, /api/v1/auth/register/, /api/v1/auth/token/refresh/
+
+- Documentação Swagger: /api/docs/
+
+- OpenAPI JSON: /api/schema/
+
+## Logging e Trace
+
+- Todos os logs trazem o schema do tenant e trace_id para rastreabilidade.
+
+- Incidentes críticos são enviados para o Sentry, com trace_id como tag.
+
+## Testes
+
+- Rode todos os testes:
+
+  ```sh
+  pytest
+  ```
+
 ## Deploy
 
 ### Backend
@@ -97,29 +135,28 @@ domain.save()
 2. Configure o Gunicorn:
 
 3. Configure o PostgreSQL para produção:
-  - Ative o Row-Level Security
-  - Configure backups regulares
-  - Otimize para performance
+
+- Ative o Row-Level Security
+- Configure backups regulares
+- Otimize para performance
 
 ## Variáveis de Ambiente
 
 ### Backend
 
-| Variável | Descrição | Valor Padrão |
-| --- | --- | --- |
-| DJANGO_SECRET_KEY | Chave secreta para o Django | django-insecure-placeholder-for-dev |
-| DJANGO_DEBUG | Modo de depuração | True |
-| DB_NAME | Nome do banco de dados | earc_db |
-| DB_USER | Usuário do banco de dados | earc_user |
-| DB_PASSWORD | Senha do banco de dados | password |
-| DB_HOST | Host do banco de dados | localhost |
-| DB_PORT | Porta do banco de dados | 5432 |
-| GOOGLE_CLIENT_ID | ID do cliente OAuth do Google | - |
-| GOOGLE_CLIENT_SECRET | Secret do cliente OAuth do Google | - |
-| GITHUB_CLIENT_ID | ID do cliente OAuth do GitHub | - |
-| GITHUB_CLIENT_SECRET | Secret do cliente OAuth do GitHub | - |
-
-## Funcionalidades Principais
+| Variável             | Descrição                         | Valor Padrão                        |
+| -------------------- | --------------------------------- | ----------------------------------- |
+| DJANGO_SECRET_KEY    | Chave secreta para o Django       | django-insecure-placeholder-for-dev |
+| DJANGO_DEBUG         | Modo de depuração                 | True                                |
+| DB_NAME              | Nome do banco de dados            | earc_db                             |
+| DB_USER              | Usuário do banco de dados         | earc_user                           |
+| DB_PASSWORD          | Senha do banco de dados           | password                            |
+| DB_HOST              | Host do banco de dados            | localhost                           |
+| DB_PORT              | Porta do banco de dados           | 5432                                |
+| GOOGLE_CLIENT_ID     | ID do cliente OAuth do Google     | -                                   |
+| GOOGLE_CLIENT_SECRET | Secret do cliente OAuth do Google | -                                   |
+| GITHUB_CLIENT_ID     | ID do cliente OAuth do GitHub     | -                                   |
+| GITHUB_CLIENT_SECRET | Secret do cliente OAuth do GitHub | -                                   |
 
 ### Módulo Financeiro
 
@@ -180,4 +217,3 @@ Este projeto é licenciado sob a licença MIT - veja o arquivo LICENSE para deta
 ## Suporte
 
 Para suporte, entre em contato com a equipe de desenvolvimento em [suporte@earc.com](mailto:suporte@earc.com).
-

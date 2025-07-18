@@ -260,6 +260,8 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'API para o sistema de gestão financeira multitenant eARC.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False, # Do not serve schema definition endpoint
+    'CONTACT': {"email": "suporte@seudominio.com"},
+    'LICENSE': {"name": "MIT License"},
     # OTHER SETTINGS
 }
 
