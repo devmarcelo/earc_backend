@@ -78,7 +78,6 @@ SHARED_APPS = (
     "allauth.account",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
-    "allauth.socialaccount.providers.github",
 )
 
 # Apps specific to each tenant
@@ -343,6 +342,8 @@ ACCOUNT_EMAIL_VERIFICATION = 'optional' # Change to 'mandatory' in production
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_LOGOUT_ON_GET = True # Optional: Allow logout via GET request
 
+SOCIALACCOUNT_ADAPTER = 'core.social.adapters.NoSignupSocialAccountAdapter'
+
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': [
@@ -358,16 +359,6 @@ SOCIALACCOUNT_PROVIDERS = {
             'key': ''
         }
     },
-    'github': {
-        'SCOPE': [
-            'user:email',
-        ],
-         'APP': {
-            'client_id': os.environ.get('GITHUB_CLIENT_ID'),
-            'secret': os.environ.get('GITHUB_CLIENT_SECRET'),
-            'key': ''
-        }
-    }
 }
 
 LOGIN_REDIRECT_URL = '/' # Or frontend URL

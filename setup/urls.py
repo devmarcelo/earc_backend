@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+from core.social.views import GoogleLoginView
 
 urlpatterns = [
     # OpenAPI JSON
@@ -11,6 +12,10 @@ urlpatterns = [
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     # Redoc (opcional)
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+
+    # Include API endpoit for social account
+    path("api/v1/auth/social/google/", GoogleLoginView.as_view(), name="google-login"),
+    
     # Include API endpoints for tenant-specific apps
     path("api/", include("setup.urls_public")),
     path("api/v1/financial/", include("financial.urls")), # Create later
