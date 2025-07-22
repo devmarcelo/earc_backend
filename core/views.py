@@ -127,6 +127,7 @@ class LoginView(generics.GenericAPIView):
                 status=status.HTTP_200_OK
             )
         except Exception as e:
+            print("ta aqui djanho")
             traceback.print_exc()
             return error_response(
                 errors=serializer.errors,

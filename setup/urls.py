@@ -15,6 +15,7 @@ urlpatterns = [
 
     # Include API endpoit for social account
     path("api/v1/auth/social/google/", GoogleLoginView.as_view(), name="google-login"),
+    path("api/v1/tenants/", include("core.tenants.urls")),
     
     # Include API endpoints for tenant-specific apps
     path("api/", include("setup.urls_public")),

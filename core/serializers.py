@@ -10,6 +10,7 @@ from .models import User, Tenant, Domain, Address
 from core.services.upload import save_upload_file, ALLOWED_IMAGE_EXTENSIONS
 from rest_framework.exceptions import ValidationError
 from django_tenants.utils import schema_context
+from dj_rest_auth.registration.serializers import RegisterSerializer
 import traceback
 
 class TenantSerializer(serializers.ModelSerializer):
@@ -254,3 +255,6 @@ class LoginSerializer(serializers.Serializer):
         attrs['user'] = user
         attrs['tenant'] = tenant
         return attrs
+
+class CustomRegisterSerializer(RegisterSerializer):
+    username = None

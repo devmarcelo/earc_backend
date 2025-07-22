@@ -1,8 +1,6 @@
 import threading
 import logging
 
-from rest_framework.response import Response
-from rest_framework.exceptions import APIException
 from core.handlers.request import handle_request
 
 try:

@@ -12,7 +12,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-import os
+import os, datetime
 from dotenv import load_dotenv
 from pathlib import Path
 from datetime import timedelta # Import timedelta here
@@ -20,10 +20,13 @@ from datetime import timedelta # Import timedelta here
 # Sentry SDK
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
+from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
+
+LOG_DATE = datetime.datetime.now().strftime("%Y-%m-%d")
 
 # Sentry Integration
 SENTRY_DSN = os.getenv('SENTRY_DSN', None)
@@ -51,6 +54,7 @@ ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,.loc
 
 PARENT_DOMAIN = os.getenv('PARENT_DOMAIN', 'localhost')
 
+DJ_REST_AUTH_REGISTER_SERIALIZER = 'core.serializers.CustomRegisterSerializer'
 
 # Application definition
 
@@ -70,6 +74,7 @@ SHARED_APPS = (
 
     # Third-party apps needed in public schema
     "rest_framework",
+    "rest_framework.authtoken",
     "rest_framework_simplejwt",
     "django_filters",
     "corsheaders",
@@ -314,6 +319,10 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     # Example: r"^https?:\/\/(\w+)\.yourappdomain\.com$", 
 ]
 
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-tenant-id"
+]
+
 # Option 3: Dynamically populate CORS_ALLOWED_ORIGINS based on Domain model
 # This requires custom logic, potentially in middleware or a startup script.
 # Example placeholder (requires implementation):
@@ -335,9 +344,9 @@ AUTHENTICATION_BACKENDS = (
 )
 
 SITE_ID = 1 # Required by allauth
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
 ACCOUNT_EMAIL_VERIFICATION = 'optional' # Change to 'mandatory' in production
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_LOGOUT_ON_GET = True # Optional: Allow logout via GET request
@@ -397,21 +406,21 @@ LOGGING = {
             'filters': ['tenant_context']
         },
         'file': {
-            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'class': 'concurrent_log_handler.ConcurrentRotatingFileHandler',
             'filename': os.path.join(BASE_DIR, 'logs/django.log'),
             'formatter': 'verbose',
             'filters': ['tenant_context'],
-            'when': 'midnight',
-            'backupCount': 30,  # Mantém 30 arquivos diários
+            'backupCount': 30,
             'encoding': 'utf8',
+            'maxBytes': 10*1024*1024,    #Script shell/python (corn job): find /caminho/logs -name 'django.log.*' -mtime +7 -delete
         },
         'sql': {
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs/sql.log'),
+            'class': 'concurrent_log_handler.ConcurrentRotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, f'logs/sql.log'),
             'formatter': 'simple',
-            'when': 'midnight',
             'backupCount': 7,
             'encoding': 'utf8',
+            'maxBytes': 10*1024*1024,
         },
     },
     'root': {
