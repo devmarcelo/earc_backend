@@ -412,7 +412,7 @@ LOGGING = {
             'filters': ['tenant_context'],
             'backupCount': 30,
             'encoding': 'utf8',
-            'maxBytes': 10*1024*1024,    #Script shell/python (corn job): find /caminho/logs -name 'django.log.*' -mtime +7 -delete
+            'maxBytes': 2*1024*1024,    #Script shell/python (corn job): find /caminho/logs -name 'django.log.*' -mtime +7 -delete
         },
         'sql': {
             'class': 'concurrent_log_handler.ConcurrentRotatingFileHandler',
@@ -420,7 +420,7 @@ LOGGING = {
             'formatter': 'simple',
             'backupCount': 7,
             'encoding': 'utf8',
-            'maxBytes': 10*1024*1024,
+            'maxBytes': 2*1024*1024,
         },
     },
     'root': {
