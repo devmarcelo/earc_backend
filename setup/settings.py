@@ -250,8 +250,8 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/day', # Limit for anonymous users
-        'user': '1000/day' # Limit for authenticated users
+        'anon': '500/hour', # Limit for anonymous users
+        'user': '2000/hour' # Limit for authenticated users
         # Consider more granular scopes later if needed
     },
     # --- Rate Limiting Configuration --- End ---
