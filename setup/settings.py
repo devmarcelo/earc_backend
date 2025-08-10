@@ -54,8 +54,6 @@ ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,.loc
 
 PARENT_DOMAIN = os.getenv('PARENT_DOMAIN', 'localhost')
 
-DJ_REST_AUTH_REGISTER_SERIALIZER = 'core.serializers.CustomRegisterSerializer'
-
 # Application definition
 
 # --- django-tenants configuration --- Start ---
@@ -79,10 +77,6 @@ SHARED_APPS = (
     "django_filters",
     "corsheaders",
     "drf_spectacular",
-    "allauth",
-    "allauth.account",
-    "allauth.socialaccount",
-    "allauth.socialaccount.providers.google",
 )
 
 # Apps specific to each tenant
@@ -120,7 +114,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "allauth.account.middleware.AccountMiddleware", # django-allauth middleware
     
     # --- Custom Middleware --- Start ---
     # Middleware para capturar o usuário atual para auditoria
@@ -339,42 +332,16 @@ CORS_ALLOW_CREDENTIALS = True # Allow cookies to be sent (needed for sessions/CS
 AUTHENTICATION_BACKENDS = (
     # Needed to login by username in Django admin, regardless of `allauth`
     'django.contrib.auth.backends.ModelBackend',
-    # `allauth` specific authentication methods, such as login by e-mail
-    'allauth.account.auth_backends.AuthenticationBackend',
 )
-
-SITE_ID = 1 # Required by allauth
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_LOGIN_METHODS = {'email'}
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
-ACCOUNT_EMAIL_VERIFICATION = 'optional' # Change to 'mandatory' in production
-ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
-ACCOUNT_LOGOUT_ON_GET = True # Optional: Allow logout via GET request
-
-SOCIALACCOUNT_ADAPTER = 'core.social.adapters.NoSignupSocialAccountAdapter'
-
-SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'SCOPE': [
-            'profile',
-            'email',
-        ],
-        'AUTH_PARAMS': {
-            'access_type': 'online',
-        },
-        'APP': {
-            'client_id': os.environ.get('GOOGLE_CLIENT_ID'),
-            'secret': os.environ.get('GOOGLE_CLIENT_SECRET'),
-            'key': ''
-        }
-    },
-}
 
 LOGIN_REDIRECT_URL = '/' # Or frontend URL
 LOGOUT_REDIRECT_URL = '/' # Or frontend URL
 
 # Email Backend (configure for real email sending in production)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+DEFAULT_FROM_EMAIL = 'investigadorfinanceiro@gmail.com'
+EARC_LOGO_URL = ''
 
 # Logging Configuration
 os.makedirs(BASE_DIR / 'logs', exist_ok=True)

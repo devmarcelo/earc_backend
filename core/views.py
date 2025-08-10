@@ -49,6 +49,7 @@ class TenantAwareViewSet(viewsets.ModelViewSet):
 # Add other core views here if needed, e.g., for tenant registration
 
 class RegisterTenantView(generics.CreateAPIView):
+    print('>>> CHEGOU MISERAVI <<<')
     serializer_class = RegisterTenantSerializer
     permission_classes = [permissions.AllowAny]
 

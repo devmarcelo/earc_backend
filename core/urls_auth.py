@@ -16,11 +16,8 @@ urlpatterns = [
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("token/verify/", TokenVerifyView.as_view(), name="token_verify"),
 
-    # Django-allauth URLs for account management (password reset, email confirmation, etc.)
-    # These typically render templates, adjust if using DRF adapters for allauth
-    path("", include("allauth.urls")), 
-
     # Custom Tenant Registration Endpoint (Example - needs view implementation)
     # path("register-tenant/", RegisterTenantView.as_view(), name="register_tenant"),
+    path("password/", include("core.reset_password.urls")),
 ]
 
