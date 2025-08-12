@@ -1,7 +1,9 @@
 import base64
 import json
 import os
+import logging
 from django.contrib.auth import get_user_model
+from django.template import TemplateDoesNotExist
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
 from core.reset_password.tokens import password_reset_token_generator
@@ -10,6 +12,7 @@ from django_tenants.utils import schema_context
 from setup import settings
 
 User = get_user_model()
+logger = logging.getLogger("core.security")
 
 def encode_b64url(data: dict) -> str:
     return base64.urlsafe_b64encode(json.dumps(data).encode()).decode()
@@ -59,12 +62,18 @@ class PasswordResetRequestSerializer(serializers.Serializer):
                 "reset_url": reset_url,
                 "earc_logo": getattr(settings, "EARC_LOGO_URL", ""),  # Configure no settings.py
             }
-            send_html_email(
-                subject=_("Redefinição de senha - {tenant}").format(tenant=tenant.name),
-                to_email=user.email,
-                template_name="core/services/email_service/templates/password_reset.html",
-                context=context,
-            )
+
+            try:
+                send_html_email(
+                    subject=_("Redefinição de senha - {tenant}").format(tenant=tenant.name),
+                    to_email=user.email,
+                    template_name="password_reset/password_reset.html",
+                    context=context,
+                )
+            except TemplateDoesNotExist:
+                logger.warning("Template de e-mail de reset ausente; seguindo sem enviar HTML.")
+            except Exception as e:
+                logger.exception("Falha ao enviar e-mail de reset: %s", e)
         except User.DoesNotExist:
             pass  # Blind response
 

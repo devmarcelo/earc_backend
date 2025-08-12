@@ -60,19 +60,14 @@ PARENT_DOMAIN = os.getenv('PARENT_DOMAIN', 'localhost')
 # Apps that should exist in the public schema (shared)
 SHARED_APPS = (
     "django_tenants",  # Mandatory
-    "core",            # App for Tenant, Domain, User models
+    "core",            # App for Tenant/Domain only
 
     # Django standard apps
-    "django.contrib.contenttypes",
-    "django.contrib.auth",
-    "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "django.contrib.admin", # Optional, if you want admin in public schema
 
     # Third-party apps needed in public schema
     "rest_framework",
-    "rest_framework.authtoken",
     "rest_framework_simplejwt",
     "django_filters",
     "corsheaders",
@@ -82,7 +77,13 @@ SHARED_APPS = (
 # Apps specific to each tenant
 TENANT_APPS = (
     # Django standard apps (can be here if needed per tenant, but often shared)
-    # "django.contrib.contenttypes", # Already in SHARED_APPS
+    "accounts",
+    # "django.contrib.contenttypes", 
+    "django.contrib.contenttypes",
+    "django.contrib.auth",
+    "django.contrib.sessions",
+    "django.contrib.admin", # Optional, if you want admin in public schema
+    "rest_framework.authtoken",
 
     # Your tenant-specific apps
     "financial",
@@ -107,8 +108,8 @@ MIDDLEWARE = [
     # --- django-tenants middleware --- End ---
 
     'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
     "corsheaders.middleware.CorsMiddleware", # CORS middleware - Ensure it's high enough
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -221,7 +222,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom User Model
-AUTH_USER_MODEL = "core.User"
+AUTH_USER_MODEL = "accounts.User"
 
 # Django REST Framework Settings
 REST_FRAMEWORK = {
@@ -316,6 +317,8 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     "x-tenant-id"
 ]
 
+CORS_EXPOSE_HEADERS = ["Content-Type", "X-Trace-ID"]
+
 # Option 3: Dynamically populate CORS_ALLOWED_ORIGINS based on Domain model
 # This requires custom logic, potentially in middleware or a startup script.
 # Example placeholder (requires implementation):
@@ -338,9 +341,17 @@ LOGIN_REDIRECT_URL = '/' # Or frontend URL
 LOGOUT_REDIRECT_URL = '/' # Or frontend URL
 
 # Email Backend (configure for real email sending in production)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False') == 'True'
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'no-reply@seu-dominio.com')
 
-DEFAULT_FROM_EMAIL = 'investigadorfinanceiro@gmail.com'
+
 EARC_LOGO_URL = ''
 
 # Logging Configuration

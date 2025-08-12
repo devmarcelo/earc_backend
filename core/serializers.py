@@ -6,7 +6,8 @@ from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
-from .models import User, Tenant, Domain, Address
+from .models import Tenant, Domain
+from accounts.models import User, Address
 from core.services.upload import save_upload_file, ALLOWED_IMAGE_EXTENSIONS
 from rest_framework.exceptions import ValidationError
 from django_tenants.utils import schema_context
@@ -102,20 +103,44 @@ class RegisterTenantSerializer(serializers.Serializer):
     country = serializers.CharField()
 
     def validate(self, data):
-        with schema_context("public"):
-            errors = {}
-            
+        errors = {}
+
+        with schema_context("public"):    
             if Tenant.objects.filter(document=data['document']).exists():
                 errors['document'] = ["Já existe uma empresa cadastrada com esse documento."]
-            if User.objects.filter(email=data['email']).exists():
-                errors['email'] = ["Este e-mail já está em uso."]
             if data.get("password") != data.get("repeat_password"):
                 errors['repeat_password'] = ["As senhas não conferem."]
             if not data.get("acceptance"):
                 errors['acceptance'] = ["Você deve aceitar os termos de uso."]
-            if errors:
-                raise ValidationError(errors)
+
+        if errors:
+            raise ValidationError(errors)
+
         return data
+    
+    def _save_file_if_needed(self, file_or_url, schema_name: str, kind: str):
+        """
+        Utilitário para salvar logo/avatar no sitema.
+        Retorna (url_final, tmp_path) para cleanup em caso de erro.
+        """
+
+        url = None
+        tmp_path = None
+
+        if hasattr(file_or_url, "read"):
+            url = save_upload_file(
+                file_or_url,
+                domain=schema_name,
+                kind=kind,
+                is_image=True,
+                allowed_extensions=ALLOWED_IMAGE_EXTENSIONS,
+                max_size_mb=5
+            )
+            tmp_path = url.replace(settings.MEDIA_URL, "")
+        elif isinstance(file_or_url, str):
+            url = file_or_url
+
+        return url, tmp_path
 
     def create(self, validated_data):
         logo_url = None
@@ -127,46 +152,30 @@ class RegisterTenantSerializer(serializers.Serializer):
         logo_file = validated_data.get("logo")
         avatar_file = validated_data.get('avatar')
 
-        with schema_context("public"):
-            if hasattr(logo_file, "read"):
-                try:
-                    logo_url = save_upload_file(
-                        logo_file,
-                        domain=schema_name,
-                        kind="logos",
-                        is_image=True,
-                        allowed_extensions=ALLOWED_IMAGE_EXTENSIONS,
-                        max_size_mb=5
-                    )
-                    logo_tmp_path = logo_url.replace(settings.MEDIA_URL, "")
-                except Exception as e:
-                    if logo_tmp_path:
-                        default_storage.delete(logo_tmp_path)
-                    raise ValidationError({"logo": [f"Erro ao fazer upload do logo: {str(e)}"]})
-            elif isinstance(logo_file, str):
-                logo_url = validated_data.get("logo", "")
+        try:
+            if logo_file:
+                logo_url, logo_tmp_path = self._save_file_if_needed(logo_file, schema_name, "logos")
 
-            
-            if hasattr(avatar_file, "read"):
-                try:
-                    avatar_url = save_upload_file(
-                        avatar_file,
-                        domain=schema_name,
-                        kind="avatars",
-                        is_image=True,
-                        allowed_extensions=ALLOWED_IMAGE_EXTENSIONS,
-                        max_size_mb=5
-                    )
-                    avatar_tmp_path = avatar_url.replace(settings.MEDIA_URL, "")
-                except Exception as e:
-                    if avatar_tmp_path:
-                        default_storage.delete(avatar_tmp_path)
-                    raise ValidationError({"avatar": [f"Erro ao fazer upload do avatar: {str(e)}"]})
-            elif isinstance(avatar_file, str):
-                avatar_url = validated_data.get("avatar", "")
+            if avatar_file:
+                avatar_url, avatar_tmp_path = self._save_file_if_needed(avatar_file, schema_name, "avatars")
+        except Exception as e:
+            if logo_tmp_path:
+                default_storage.delete(logo_tmp_path)
+            if avatar_tmp_path:
+                default_storage.delete(avatar_tmp_path)
 
-            try:
+            raise ValidationError({"file": [f"Erro ao salvar arquivo: {str(e)}"]})
+        
+
+        try:
+            with schema_context("public"):
                 with transaction.atomic():
+                    # Idempotência básica: se já existe por schema/document, retorna
+                    existing = Tenant.objects.filter(schema_name=schema_name).first() or Tenant.objects.filter(document=validated_data['document']).first()
+
+                    if existing:
+                        return existing
+
                     print("Començando criação do tenant...")
                     tenant = Tenant.objects.create(
                         name=validated_data['name'],
@@ -183,6 +192,9 @@ class RegisterTenantSerializer(serializers.Serializer):
                     )
 
                     print("Domínio criado: ", domain)
+
+            with schema_context(schema_name):
+                with transaction.atomic():
                     user = User.objects.create_user(
                         tenant=tenant,
                         email=validated_data['email'],
@@ -191,6 +203,8 @@ class RegisterTenantSerializer(serializers.Serializer):
                         avatar=avatar_url,
                         acceptance=validated_data['acceptance'],
                         is_active=True,
+                        is_staff=True,
+                        is_superuser=True,
                     )
 
                     print("Usuário admin criado: ", user)
@@ -209,16 +223,16 @@ class RegisterTenantSerializer(serializers.Serializer):
                     )
 
                     print("Endereço criado: ", address)
-                    return tenant
-            except Exception as e:
-                print("Erro ao criar registro: ", str(e))
-                traceback.print_exc()
-                
-                if logo_tmp_path:
-                    default_storage.delete(logo_tmp_path)
-                if avatar_tmp_path:
-                    default_storage.delete(avatar_tmp_path)
-                raise ValidationError({"non_field_errors": [f"Falha no cadastro: {str(e)}"]})
+            return tenant
+        except Exception as e:
+            print("Erro ao criar registro: ", str(e))
+            traceback.print_exc()
+            
+            if logo_tmp_path:
+                default_storage.delete(logo_tmp_path)
+            if avatar_tmp_path:
+                default_storage.delete(avatar_tmp_path)
+            raise ValidationError({"non_field_errors": [f"Falha no cadastro: {str(e)}"]})
             
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()

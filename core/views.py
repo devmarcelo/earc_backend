@@ -49,18 +49,18 @@ class TenantAwareViewSet(viewsets.ModelViewSet):
 # Add other core views here if needed, e.g., for tenant registration
 
 class RegisterTenantView(generics.CreateAPIView):
-    print('>>> CHEGOU MISERAVI <<<')
     serializer_class = RegisterTenantSerializer
     permission_classes = [permissions.AllowAny]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
+        tenant = serializer.save()
         trace_id = getattr(request, "request_id", None)
-        headers = self.get_success_headers(serializer.data)
+        data = TenantSerializer(tenant).data
+        headers = self.get_success_headers(data)
         return success_response(
-            data=serializer.data,
+            data=data,
             message="Empresa criada com sucesso.",
             trace_id=trace_id,
             status=status.HTTP_201_CREATED

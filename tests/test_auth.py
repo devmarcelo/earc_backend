@@ -1,6 +1,7 @@
 import pytest
 from django.contrib.auth import get_user_model
-from core.models import Tenant, Address, User
+from core.models import Tenant
+from accounts.models import User, Address
 
 @pytest.mark.django_db
 def test_login_success(api_client, user):

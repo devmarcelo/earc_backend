@@ -5,14 +5,8 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, Sp
 
 from core.views import RegisterTenantView
 
-from django.http import JsonResponse
-
-def ping_public(_):
-    return JsonResponse({"public": True, "ok": True})
-
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/ping/", ping_public, name="public-ping"),
     path("register-company/", RegisterTenantView.as_view(), name="register-company"),
     # Auth endpoints (Login, Register, Refresh, OAuth) - Reside in public schema
     path("v1/auth/", include("core.urls_auth")), # Create this file later
