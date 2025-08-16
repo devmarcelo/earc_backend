@@ -245,8 +245,10 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '500/hour', # Limit for anonymous users
-        'user': '2000/hour' # Limit for authenticated users
+        'user': '2000/hour', # Limit for authenticated users
         # Consider more granular scopes later if needed
+        'auth_login': '10/min',
+        'auth_reset': '5/min'
     },
     # --- Rate Limiting Configuration --- End ---
     "EXCEPTION_HANDLER": "core.handlers.exception_handler.custom_exception_handler",

@@ -55,6 +55,11 @@ class RequestResponseCentralizerMiddleware:
         if HAS_SENTRY:
             with sentry_sdk.configure_scope() as scope:
                 scope.set_tag("trace_id", trace_id)
+                tenant = getattr(request, 'tenant', None)
+
+                if tenant and getattr(tenant, 'schema_name', None):
+                    scope.set_tag("tenant", tenant.schema_name)
+
                 if hasattr(request, 'user') and getattr(request.user, 'email', None):
                     scope.user = {"email": request.user.email}
 

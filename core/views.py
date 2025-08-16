@@ -4,6 +4,9 @@ from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from django.db import connection
+from ai.events import emit_event
+from core.security.throttles import LoginRateThrottle
 from .serializers import RegisterTenantSerializer, LoginSerializer, TenantSerializer
 from core.handlers.response import success_response, error_response
 from core.utils.security import register_token_attempt, is_token_blocked
@@ -76,6 +79,7 @@ class LoginView(generics.GenericAPIView):
     serializer_class = LoginSerializer
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
+    throttle_classes = [LoginRateThrottle]
 
     def post(self, request, *args, **kwargs):
         trace_id = getattr(request, "request_id", None)
@@ -115,6 +119,13 @@ class LoginView(generics.GenericAPIView):
             }
 
             tenant_data = TenantSerializer(tenant).data
+
+            emit_event(
+                "auth.login.success", 
+                {"user_id": user.id, "email": user.email}, 
+                tenant_schema=connection.schema_name, 
+                source="api"
+            )
 
             return success_response(
                 data={

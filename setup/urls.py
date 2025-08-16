@@ -24,6 +24,7 @@ urlpatterns = [
     path("api/v1/settings/", include("settings_app.urls")), # Create later
 
     # Include other tenant-specific URL patterns here
+    path("api/ai/", include("core.ai_integration.urls")),
 ]
 
 # Serve media files during development

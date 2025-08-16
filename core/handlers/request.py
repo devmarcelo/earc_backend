@@ -47,7 +47,12 @@ def handle_request(request):
 
     # --- Validação de tenant_id (para endpoints multi-tenant públicos) ---
     if getattr(settings, "REQUIRE_TENANT_HEADER", False):
-        tenant_id = request.headers.get("X-TENANT-ID")
+        tenant_id = (
+            request.headers.get("X-Tenant-Id")
+            or request.headers.get("X-TENANT-ID")
+            or request.headers.get("X-Tenant")
+            or request.headers.get("X-TENANT")
+        )
         if not tenant_id:
             logger.warning(f"REQUEST BLOCKED | ID={trace_id} | Motivo=Tenant ID missing")
             raise NotAuthenticated(detail="Tenant ID obrigatório para esta operação.")
